@@ -1,6 +1,6 @@
 <launch>
     <!-- Mapping package -->
-    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" args="scan:=scan_filtered" output="screen">
         <param name="base_frame" value="/base_footprint" />
         <param name="odom_frame" value="/odom" />
         <param name="map_update_interval" value="15.0"/>

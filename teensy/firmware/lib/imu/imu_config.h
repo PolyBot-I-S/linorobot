@@ -58,6 +58,32 @@
     MPU9250 magnetometer;
 #endif
 
+#ifdef USE_BNO055
+    #include "Adafruit_Sensor.h"
+    #include "Adafruit_BNO055.h"
+    #include "utility/imumaths.h"
+
+    //#include "fake_mag.h"
+
+    #define ACCEL_SCALE 1000 // LSB/g           1 mg = 1 LSB => 1g = 1000 LSB
+    #define GYRO_SCALE 0.0625 // LSB/(deg/s)    1 Dps = 16 LSB (Datasheet 3.6.4.3)
+    #define MAG_SCALE 0.0625 // uT/LSB          1 uT = 16 LSB
+
+    //#define ACC_UNIT (1)    // (0): m/s^2   (1): mg
+    //#define GYR_UNIT (1)    // (0): degree/s   (1): rad/s
+
+    Adafruit_BNO055 bno;
+    //FakeMag magnetometer;
+    //write8(BNO055_PAGE_ID_ADDR, 0);     // Select relevant register page
+
+    // Change the default units for acc and gyro
+    //uint8_t unitsel = (uint8_t) ((GYR_UNIT << 1)
+    //                | (ACC_UNIT << 0));
+
+    //write8(0x3B, unitsel);
+
+#endif
+
 #endif
 
 //ADXL345 https://www.sparkfun.com/datasheets/Sensors/Accelerometer/ADXL345.pdf

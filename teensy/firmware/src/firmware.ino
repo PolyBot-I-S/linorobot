@@ -10,7 +10,7 @@
 #include "ros/time.h"
 //header file for publishing velocities for odom
 #include "lino_msgs/Velocities.h"
-//header file for cmd_subscribing to "cmd_vel"
+//header file for cmd_subscribing to "number_one/cmd_vel"
 #include "geometry_msgs/Twist.h"
 //header file for pid server
 #include "lino_msgs/PID.h"
@@ -26,14 +26,13 @@
 #define ENCODER_OPTIMIZE_INTERRUPTS // comment this out on Non-Teensy boards
 #include "Encoder.h"
 
-#define IMU_PUBLISH_RATE 20 //hz
+//#define IMU_PUBLISH_RATE 20 //hz
+#define IMU_PUBLISH_RATE 50 //hz
 #define COMMAND_RATE 20 //hz
 #define DEBUG_RATE 5
 
 Encoder motor1_encoder(MOTOR1_ENCODER_A, MOTOR1_ENCODER_B, COUNTS_PER_REV);
 Encoder motor2_encoder(MOTOR2_ENCODER_A, MOTOR2_ENCODER_B, COUNTS_PER_REV); 
-Encoder motor3_encoder(MOTOR3_ENCODER_A, MOTOR3_ENCODER_B, COUNTS_PER_REV); 
-Encoder motor4_encoder(MOTOR4_ENCODER_A, MOTOR4_ENCODER_B, COUNTS_PER_REV); 
 
 Servo steering_servo;
 
@@ -70,10 +69,24 @@ ros::Publisher raw_imu_pub("raw_imu", &raw_imu_msg);
 lino_msgs::Velocities raw_vel_msg;
 ros::Publisher raw_vel_pub("raw_vel", &raw_vel_msg);
 
+// Encoder vbariables
+volatile long Left_Encoder_Ticks = 0;
+volatile bool LeftEncoderBSet;
+volatile long Right_Encoder_Ticks = 0;
+volatile bool RightEncoderBSet;
+
+unsigned long prev_update_time_left = 0;
+unsigned long prev_update_time_right = 0;
+
+long prev_encoder_ticks_left = 0;
+long prev_encoder_ticks_right = 0;
+
+int counts_per_rev = COUNTS_PER_REV;
+
 void setup()
 {
-    steering_servo.attach(STEERING_PIN);
-    steering_servo.write(90); 
+    // steering_servo.attach(STEERING_PIN);
+    // steering_servo.write(90); 
     
     nh.initNode();
     nh.getHardware()->setBaud(57600);
@@ -170,17 +183,20 @@ void moveBase()
     Kinematics::rpm req_rpm = kinematics.getRPM(g_req_linear_vel_x, g_req_linear_vel_y, g_req_angular_vel_z);
 
     //get the current speed of each motor
+    // int current_rpm1 = getRPM_left();
+    // int current_rpm2 = getRPM_right();
     int current_rpm1 = motor1_encoder.getRPM();
-    int current_rpm2 = motor2_encoder.getRPM();
-    int current_rpm3 = motor3_encoder.getRPM();
-    int current_rpm4 = motor4_encoder.getRPM();
+    int current_rpm2 = motor2_encoder.getRPM(); 
+
 
     //the required rpm is capped at -/+ MAX_RPM to prevent the PID from having too much error
     //the PWM value sent to the motor driver is the calculated PID based on required RPM vs measured RPM
+    
     motor1_controller.spin(motor1_pid.compute(req_rpm.motor1, current_rpm1));
     motor2_controller.spin(motor2_pid.compute(req_rpm.motor2, current_rpm2));
-    motor3_controller.spin(motor3_pid.compute(req_rpm.motor3, current_rpm3));  
-    motor4_controller.spin(motor4_pid.compute(req_rpm.motor4, current_rpm4));    
+
+    // motor3_controller.spin(motor3_pid.compute(req_rpm.motor3, current_rpm3));  
+    // motor4_controller.spin(motor4_pid.compute(req_rpm.motor4, current_rpm4));    
 
     Kinematics::velocities current_vel;
 
@@ -193,7 +209,7 @@ void moveBase()
     }
     else
     {
-        current_vel = kinematics.getVelocities(current_rpm1, current_rpm2, current_rpm3, current_rpm4);
+        current_vel = kinematics.getVelocities(current_rpm1, current_rpm2, 0, 0);
     }
     
     //pass velocities to publisher object
@@ -249,12 +265,18 @@ void printDebug()
 {
     char buffer[50];
 
-    sprintf (buffer, "Encoder FrontLeft  : %ld", motor1_encoder.read());
+    //sprintf (buffer, "Encoder FrontLeft  : %ld", motor1_encoder.read());
+    // sprintf (buffer, "Encoder FrontLeft  : %ld", Left_Encoder_Ticks);
+    
+    sprintf (buffer, "Encoder Left  : %ld", motor1_encoder.read());
+    // sprintf (buffer, "Encoder Left  : %ld", motor1_encoder.getRPM());
     nh.loginfo(buffer);
-    sprintf (buffer, "Encoder FrontRight : %ld", motor2_encoder.read());
+    // sprintf (buffer, "Encoder FrontRight : %ld", Right_Encoder_Ticks);
+    sprintf (buffer, "Encoder Right : %ld", motor2_encoder.read());
+    // sprintf (buffer, "Encoder Right : %ld", motor2_encoder.getRPM());
     nh.loginfo(buffer);
-    sprintf (buffer, "Encoder RearLeft   : %ld", motor3_encoder.read());
-    nh.loginfo(buffer);
-    sprintf (buffer, "Encoder RearRight  : %ld", motor4_encoder.read());
-    nh.loginfo(buffer);
+    // sprintf (buffer, "Encoder RearLeft   : %ld", motor3_encoder.read());
+    // nh.loginfo(buffer);
+    // sprintf (buffer, "Encoder RearRight  : %ld", motor4_encoder.read());
+    // nh.loginfo(buffer);
 }
